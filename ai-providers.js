@@ -4,7 +4,9 @@
 
 class GroqProvider {
   static BASE_URL = 'https://api.groq.com/openai/v1';
-  static MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct';
+  // Vision-capable flagship model on Groq. Verify current ID at:
+  // https://console.groq.com/docs/models or GET /openai/v1/models
+  static MODEL = 'openai/gpt-oss-120b';
   static TIMEOUT = 45000;
 
   static async testConnection(apiKey) {
@@ -15,6 +17,16 @@ class GroqProvider {
         signal: AbortSignal.timeout(5000)
       });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      const ids = (data.data || []).map(m => m.id);
+      if (!ids.includes(this.MODEL)) {
+        console.warn(`[Instagram MD] Model "${this.MODEL}" not found. Available:`, ids);
+        throw new Error(
+          `Model "${this.MODEL}" is not available on your Groq account. ` +
+          `Available models: ${ids.join(', ')}. ` +
+          `Update MODEL in ai-providers.js.`
+        );
+      }
       return true;
     } catch (err) {
       throw new Error(`Groq connection failed: ${err.message}`);
