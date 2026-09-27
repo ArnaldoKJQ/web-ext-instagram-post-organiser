@@ -1,0 +1,240 @@
+/* Popup styles */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #fff;
+  color: #333;
+  width: 500px;
+  max-height: 600px;
+}
+
+.container {
+  padding: 16px;
+  overflow-y: auto;
+  max-height: 600px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 18px;
+  color: #000;
+}
+
+.btn-settings {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.btn-settings:hover {
+  background: #f0f0f0;
+}
+
+h2 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+h3 {
+  margin: 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Queue section */
+.queue-section {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.queue-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.queue-badge {
+  display: inline-block;
+  background: #E1306C;
+  color: white;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: bold;
+}
+
+.queue-list {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.queue-item {
+  background: white;
+  padding: 8px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  border-left: 3px solid #E1306C;
+  font-size: 12px;
+}
+
+.queue-item-text {
+  margin-bottom: 4px;
+}
+
+.queue-item strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.queue-item p {
+  margin: 0;
+  color: #666;
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.queue-item small {
+  display: block;
+  color: #999;
+  font-size: 10px;
+}
+
+.empty-state {
+  text-align: center;
+  color: #999;
+  font-size: 12px;
+  padding: 16px 0;
+  margin: 0;
+}
+
+/* Actions */
+.action-section {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.btn {
+  flex: 1;
+  padding: 10px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background: #E1306C;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #c91256;
+  transform: translateY(-1px);
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #e8e8e8;
+  transform: translateY(-1px);
+}
+
+.btn-small {
+  padding: 6px 12px;
+  font-size: 11px;
+  flex: none;
+  margin-right: 6px;
+}
+
+/* Status */
+.status {
+  font-size: 12px;
+  padding: 8px;
+  text-align: center;
+  min-height: 18px;
+  color: #666;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Preview section */
+.preview-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ddd;
+}
+
+#markdown-preview {
+  width: 100%;
+  height: 200px;
+  padding: 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+}
+
+.preview-actions {
+  margin-top: 8px;
+  display: flex;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}
