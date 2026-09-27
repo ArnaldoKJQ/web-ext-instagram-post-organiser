@@ -33,44 +33,25 @@ class GroqProvider {
     }
   }
 
-  // Serialise one post to a text block (used inside the single user message).
-  static postToText(post) {
-    let text = `POST ID: ${post.id}\n`;
-    if (post.transcript) {
-      text += `TRANSCRIPT (Whisper): ${post.transcript}\n`;
-    } else if (post.audioNotes) {
-      text += `AUDIO NOTES: ${post.audioNotes}\n`;
-    }
-    if (post.caption) text += `CAPTION: ${post.caption}\n`;
-    const imageUrls = post.imageUrls || (post.imageUrl ? [post.imageUrl] : []);
-    if (!post.transcript && !post.audioNotes && !post.caption && imageUrls.length > 0) {
-      text += '(No caption — describe what you see in the image(s))\n';
-    }
-    return text.trim();
-  }
-
-  // All posts go into ONE user message.
-  // If any post has images, use the multimodal array format;
-  // otherwise use a plain string (Groq rejects arrays when no images are present).
+  // All posts go into ONE user message as a plain string.
+  // Instagram CDN image URLs require session cookies — Groq's servers can't
+  // fetch them, so vision arrays don't work here. Text content only.
   static buildUserMessage(posts) {
-    const hasImages = posts.some(p => (p.imageUrls?.length > 0) || p.imageUrl);
-
-    if (!hasImages) {
-      const text = posts.map(p => this.postToText(p)).join('\n---\n');
-      return { role: 'user', content: text };
-    }
-
-    // Multimodal: interleave image blocks with each post's text block.
-    const content = [];
-    for (const post of posts) {
-      const imageUrls = post.imageUrls || (post.imageUrl ? [post.imageUrl] : []);
-      for (const url of imageUrls.slice(0, 3)) {
-        content.push({ type: 'image_url', image_url: { url } });
+    const text = posts.map(post => {
+      let block = `POST ID: ${post.id}\n`;
+      if (post.transcript) {
+        block += `TRANSCRIPT (Whisper): ${post.transcript}\n`;
+      } else if (post.audioNotes) {
+        block += `AUDIO NOTES: ${post.audioNotes}\n`;
       }
-      content.push({ type: 'text', text: this.postToText(post) });
-      content.push({ type: 'text', text: '---' });
-    }
-    return { role: 'user', content };
+      if (post.caption) block += `CAPTION: ${post.caption}\n`;
+      if (!post.transcript && !post.audioNotes && !post.caption) {
+        block += '(No text content available)\n';
+      }
+      return block.trim();
+    }).join('\n---\n');
+
+    return { role: 'user', content: text };
   }
 
   static buildSystemPrompt(postCount) {

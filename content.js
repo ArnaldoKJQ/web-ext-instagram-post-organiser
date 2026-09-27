@@ -146,12 +146,11 @@
         }
 
         console.log('[Instagram MD] Captured post:', postData.id);
+        // Guard against orphaned content scripts after extension reload.
+        if (!chrome.runtime?.id) return;
         chrome.runtime.sendMessage({ action: 'addToQueue', post: postData }, (resp) => {
-          if (chrome.runtime.lastError) {
-            console.error('[Instagram MD] Queue error:', chrome.runtime.lastError);
-          } else if (resp?.success) {
-            console.log('[Instagram MD] Post queued, queue size:', resp.count);
-          }
+          if (chrome.runtime.lastError) return; // context invalidated mid-send
+          if (resp?.success) console.log('[Instagram MD] Post queued, queue size:', resp.count);
         });
       } catch (err) {
         console.error('[Instagram MD] Save hook error:', err);
