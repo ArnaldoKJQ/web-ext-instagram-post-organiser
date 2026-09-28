@@ -4,6 +4,23 @@ A Chrome extension that captures your saved Instagram posts and converts them in
 
 ---
 
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><strong>Post list</strong></td>
+    <td align="center"><strong>Markdown preview</strong></td>
+    <td align="center"><strong>Settings</strong></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/popup-list.png" width="240" alt="Popup showing post list with done, processing, and queued items"></td>
+    <td><img src="screenshots/popup-preview.png" width="240" alt="Popup with editable markdown preview after processing"></td>
+    <td><img src="screenshots/options.png" width="280" alt="Settings page with API key, model picker, and batch size"></td>
+  </tr>
+</table>
+
+---
+
 ## What it does
 
 1. **Capture** — click the save button on any Instagram post (photo, carousel, or Reel) and it's silently added to your queue. Or use **Bulk Import** to scrape your entire saved collection at once.
