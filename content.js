@@ -153,7 +153,11 @@
           if (resp?.success) console.log('[Instagram MD] Post queued, queue size:', resp.count);
         });
       } catch (err) {
-        console.error('[Instagram MD] Save hook error:', err);
+        // "Extension context invalidated" is expected when the extension reloads
+        // while the old content script is still alive — not a real error.
+        if (!err.message?.includes('context invalidated')) {
+          console.error('[Instagram MD] Save hook error:', err);
+        }
       }
     }, 300);
   }, true);
