@@ -1,33 +1,32 @@
 // Groq AI — post categorization and summarization.
-// Uses llama-4-scout (vision-capable) so image content is understood alongside captions.
 // Whisper transcription is separate (background.js).
 
 class GroqProvider {
   static BASE_URL = 'https://api.groq.com/openai/v1';
-  // Vision-capable flagship model on Groq. Verify current ID at:
-  // https://console.groq.com/docs/models or GET /openai/v1/models
-  static MODEL = 'openai/gpt-oss-120b';
   static TIMEOUT = 45000;
+  // Fallback when no model is configured in settings
+  static DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+
+  // Returns chat-capable models, sorted by ID.
+  // Filters out audio (whisper), embedding, and safety-classifier models.
+  static async listModels(apiKey) {
+    const resp = await fetch(`${this.BASE_URL}/models`, {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    return (data.data || [])
+      .filter(m => !/(whisper|embed|guard|tts)/i.test(m.id))
+      .sort((a, b) => a.id.localeCompare(b.id));
+  }
 
   static async testConnection(apiKey) {
     try {
-      const response = await fetch(`${this.BASE_URL}/models`, {
-        method: 'GET',
-        headers: { 'Authorization': `Bearer ${apiKey}` },
-        signal: AbortSignal.timeout(5000)
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      const ids = (data.data || []).map(m => m.id);
-      if (!ids.includes(this.MODEL)) {
-        console.warn(`[Instagram MD] Model "${this.MODEL}" not found. Available:`, ids);
-        throw new Error(
-          `Model "${this.MODEL}" is not available on your Groq account. ` +
-          `Available models: ${ids.join(', ')}. ` +
-          `Update MODEL in ai-providers.js.`
-        );
-      }
-      return true;
+      const models = await this.listModels(apiKey);
+      if (models.length === 0) throw new Error('No chat models found on this account');
+      return { ok: true, models };
     } catch (err) {
       throw new Error(`Groq connection failed: ${err.message}`);
     }
@@ -39,13 +38,11 @@ class GroqProvider {
   static buildUserMessage(posts) {
     const text = posts.map(post => {
       let block = `POST ID: ${post.id}\n`;
-      if (post.transcript) {
-        block += `TRANSCRIPT (Whisper): ${post.transcript}\n`;
-      } else if (post.audioNotes) {
-        block += `AUDIO NOTES: ${post.audioNotes}\n`;
-      }
-      if (post.caption) block += `CAPTION: ${post.caption}\n`;
-      if (!post.transcript && !post.audioNotes && !post.caption) {
+      if (post.transcript)        block += `TRANSCRIPT (Whisper): ${post.transcript}\n`;
+      else if (post.audioNotes)   block += `AUDIO NOTES: ${post.audioNotes}\n`;
+      if (post.imageDescription)  block += `IMAGE CONTENT (OCR): ${post.imageDescription}\n`;
+      if (post.caption)           block += `CAPTION: ${post.caption}\n`;
+      if (!post.transcript && !post.audioNotes && !post.imageDescription && !post.caption) {
         block += '(No text content available)\n';
       }
       return block.trim();
@@ -60,7 +57,8 @@ class GroqProvider {
 SOURCE PRIORITY (use in this order):
 1. TRANSCRIPT — most accurate, use if present
 2. AUDIO NOTES — user-typed notes, use if no transcript
-3. CAPTION + images — fallback
+3. IMAGE CONTENT (OCR) — extracted from the image, prefer over caption alone
+4. CAPTION — fallback
 
 FOR EACH POST extract:
 - topic: 1-3 word category (e.g. "Design Tools", "Productivity", "Typography")
@@ -90,10 +88,11 @@ Return EXACTLY ${postCount} objects in the SAME ORDER as the posts, with "id" co
 ]`;
   }
 
-  static async categorizePosts(posts, apiKey) {
+  static async categorizePosts(posts, apiKey, model) {
     if (!apiKey) throw new Error('API key not configured');
     if (!posts || posts.length === 0) return [];
 
+    const useModel = model || this.DEFAULT_MODEL;
     const messages = [
       { role: 'system', content: this.buildSystemPrompt(posts.length) },
       this.buildUserMessage(posts)
@@ -107,7 +106,7 @@ Return EXACTLY ${postCount} objects in the SAME ORDER as the posts, with "id" co
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: this.MODEL,
+          model: useModel,
           messages,
           temperature: 0.2,
           max_tokens: Math.min(8192, 500 * posts.length + 800)
@@ -129,7 +128,6 @@ Return EXACTLY ${postCount} objects in the SAME ORDER as the posts, with "id" co
       const categorized = JSON.parse(jsonMatch[0]);
 
       return posts.map((post, index) => {
-        // Match by ID, fall back to position if model mangled the ID.
         let cat = categorized.find(c => c.id === post.id);
         if (!cat && categorized[index]) {
           console.log(`[Instagram MD] ID mismatch at index ${index}, using positional fallback`);
@@ -137,10 +135,10 @@ Return EXACTLY ${postCount} objects in the SAME ORDER as the posts, with "id" co
         }
         return {
           ...post,
-          topic: cat?.topic || 'Uncategorized',
-          name: cat?.name || cat?.topic || 'Post',
-          summary: cat?.summary || '',
-          tags: cat?.tags || [],
+          topic:     cat?.topic     || 'Uncategorized',
+          name:      cat?.name      || cat?.topic || 'Post',
+          summary:   cat?.summary   || '',
+          tags:      cat?.tags      || [],
           mediaType: cat?.media_type || 'unknown'
         };
       });

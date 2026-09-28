@@ -5,6 +5,7 @@
   "description": "Convert Instagram saved posts to Obsidian markdown, auto-summarized by Groq AI",
   "permissions": [
     "storage",
+    "alarms",
     "offscreen",
     "tabCapture",
     "activeTab",

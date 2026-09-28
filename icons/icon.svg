@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <radialGradient id="body-grad" cx="45%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#f0d0a0"/>
+      <stop offset="55%" stop-color="#c8946a"/>
+      <stop offset="100%" stop-color="#8b4513"/>
+    </radialGradient>
+    <radialGradient id="lens-outer" cx="38%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#c8a870"/>
+      <stop offset="100%" stop-color="#6b4020"/>
+    </radialGradient>
+    <radialGradient id="lens-inner" cx="35%" cy="32%" r="68%">
+      <stop offset="0%" stop-color="#7ab0d4"/>
+      <stop offset="25%" stop-color="#3a7aaa"/>
+      <stop offset="60%" stop-color="#1a3a60"/>
+      <stop offset="100%" stop-color="#08182e"/>
+    </radialGradient>
+    <linearGradient id="top-grad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a2008"/>
+      <stop offset="100%" stop-color="#6b3510"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Body -->
+  <rect width="128" height="128" rx="24" fill="url(#body-grad)"/>
+
+  <!-- Top housing -->
+  <rect width="128" height="34" rx="0" fill="url(#top-grad)"/>
+  <rect width="128" height="24" rx="24" ry="24" fill="url(#top-grad)"/>
+  <rect y="12" width="128" height="22" fill="url(#top-grad)"/>
+  <rect y="30" width="128" height="4" fill="#3a1808"/>
+
+  <!-- Rainbow stripe -->
+  <rect x="11" y="10" width="9" height="14" rx="1.5" fill="#e32929"/>
+  <rect x="21" y="10" width="9" height="14" rx="1.5" fill="#f4901a"/>
+  <rect x="31" y="10" width="9" height="14" rx="1.5" fill="#ffe03a"/>
+  <rect x="41" y="10" width="9" height="14" rx="1.5" fill="#4caf50"/>
+  <rect x="51" y="10" width="9" height="14" rx="1.5" fill="#2196f3"/>
+
+  <!-- Viewfinder (top right) -->
+  <circle cx="104" cy="17" r="12" fill="#2a1005"/>
+  <circle cx="104" cy="17" r="10" fill="#1a0d05"/>
+  <circle cx="104" cy="17" r="7" fill="#241510"/>
+  <circle cx="101" cy="14" r="2.5" fill="#8080a0" fill-opacity="0.35"/>
+
+  <!-- Shutter button -->
+  <circle cx="64" cy="33" r="5" fill="#3a1808"/>
+  <circle cx="64" cy="33" r="3.5" fill="#5a2a10"/>
+
+  <!-- Main lens chrome ring -->
+  <circle cx="64" cy="82" r="40" fill="#2a1005"/>
+  <circle cx="64" cy="82" r="37" fill="url(#lens-outer)"/>
+  <circle cx="64" cy="82" r="33" fill="#1a0d05"/>
+  <circle cx="64" cy="82" r="29" fill="#0f0805"/>
+  <circle cx="64" cy="82" r="25" fill="url(#lens-inner)"/>
+  <circle cx="64" cy="82" r="19" fill="#0a1828"/>
+  <circle cx="64" cy="82" r="14" fill="#0d1e30"/>
+
+  <!-- Lens reflection -->
+  <ellipse cx="56" cy="72" rx="6" ry="4" fill="white" fill-opacity="0.12" transform="rotate(-20 56 72)"/>
+  <circle cx="72" cy="76" r="2" fill="white" fill-opacity="0.06"/>
+</svg>

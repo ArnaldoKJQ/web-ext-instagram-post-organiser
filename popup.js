@@ -1,61 +1,281 @@
-// Popup — Queue / Processed tabs, selection, transcribe, process, download.
+// Popup — unified post list with per-post status, select-all, background processing.
 
 // ── Icons ──────────────────────────────────────────────────────────────────
 
-function iconMic(extraStyle = '') {
-  return `<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" style="${extraStyle}">
-    <path d="M7 8C7 5.23858 9.23858 3 12 3C14.7614 3 17 5.23858 17 8V11C17 13.7614 14.7614 16 12 16C9.23858 16 7 13.7614 7 11V8Z" stroke="currentColor" stroke-width="1.5"></path>
-    <path d="M13.5 8L17 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-    <path d="M13.5 11L17 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-    <path d="M7 8L9 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-    <path d="M7 11L9 11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-    <path d="M12 19V22" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"></path>
-    <path d="M20.75 10C20.75 9.58579 20.4142 9.25 20 9.25C19.5858 9.25 19.25 9.58579 19.25 10H20.75ZM4.75 10C4.75 9.58579 4.41421 9.25 4 9.25C3.58579 9.25 3.25 9.58579 3.25 10H4.75ZM15.5121 17.3442C15.1499 17.5452 15.0192 18.0017 15.2202 18.3639C15.4212 18.7261 15.8777 18.8568 16.2399 18.6558L15.5121 17.3442ZM19.25 10V11H20.75V10H19.25ZM4.75 11V10H3.25V11H4.75ZM12 18.25C7.99594 18.25 4.75 15.0041 4.75 11H3.25C3.25 15.8325 7.16751 19.75 12 19.75V18.25ZM19.25 11C19.25 13.7287 17.7429 16.1063 15.5121 17.3442L16.2399 18.6558C18.928 17.1642 20.75 14.2954 20.75 11H19.25Z" fill="currentColor"></path>
-  </svg>`;
+function iconVideo(s = 'width:13px;height:13px;flex-shrink:0') {
+  return `<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="${s}"><rect x="1" y="4.5" width="9" height="7" rx="1.5"/><path d="M10 6.8l4-2v6.4l-4-2"/></svg>`;
+}
+
+function iconX(s = 'width:10px;height:10px;flex-shrink:0') {
+  return `<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="${s}"><path d="M2 2l8 8M10 2l-8 8"/></svg>`;
 }
 
 // ── DOM refs ───────────────────────────────────────────────────────────────
 
 const el = {
-  settingsBtn:      document.getElementById('settings-btn'),
-  queueCount:       document.getElementById('queue-count'),
-  processedCount:   document.getElementById('processed-count'),
-  queueList:        document.getElementById('queue-list'),
-  processedList:    document.getElementById('processed-list'),
-  processBtn:       document.getElementById('process-btn'),
-  transcribeBtn:    document.getElementById('transcribe-btn'),
-  bulkImportBtn:    document.getElementById('bulk-import-btn'),
-  downloadAllBtn:   document.getElementById('download-all-btn'),
-  clearBtn:         document.getElementById('clear-btn'),
-  status:           document.getElementById('status'),
-  previewSection:   document.getElementById('preview-section'),
-  markdownPreview:  document.getElementById('markdown-preview'),
-  copyBtn:          document.getElementById('copy-btn'),
-  downloadBtn:      document.getElementById('download-btn'),
-  tabSlider:        document.getElementById('tab-slider'),
-  transcribeIcon:   document.getElementById('transcribe-icon'),
-  transcribeLabel:  document.getElementById('transcribe-label')
+  settingsBtn:    document.getElementById('settings-btn'),
+  postsList:      document.getElementById('posts-list'),
+  selectAll:      document.getElementById('select-all'),
+  selectAllLabel: document.getElementById('select-all-label'),
+  postsCount:     document.getElementById('posts-count'),
+  processBtn:     document.getElementById('process-btn'),
+  downloadBtn:    document.getElementById('download-btn'),
+  clearBtn:       document.getElementById('clear-btn'),
+  bulkImportBtn:  document.getElementById('bulk-import-btn'),
+  status:         document.getElementById('status'),
+  previewSection: document.getElementById('preview-section'),
+  markdownPreview:document.getElementById('markdown-preview'),
+  copyBtn:        document.getElementById('copy-btn'),
+  downloadMdBtn:  document.getElementById('download-md-btn')
 };
-
-el.transcribeIcon.innerHTML = iconMic('width:13px;height:13px;');
 
 // ── State ──────────────────────────────────────────────────────────────────
 
-let selectedQueueIds = new Set();
-let selectedProcessedIds = new Set();
+let selectedIds = new Set();
+let allPosts = [];
 
-// ── Tabs ───────────────────────────────────────────────────────────────────
+// ── Load + Render ──────────────────────────────────────────────────────────
 
-const tabBtns = document.querySelectorAll('.tab-btn');
-tabBtns.forEach((btn, idx) => {
-  btn.addEventListener('click', () => {
-    tabBtns.forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(btn.dataset.tab).classList.add('active');
-    el.tabSlider.style.transform = `translateX(${idx * 100}%)`;
+async function loadPosts() {
+  const [queue, processed] = await Promise.all([
+    Storage.getQueue(),
+    Storage.getProcessed()
+  ]);
+
+  // Ensure statuses are set
+  for (const p of queue)     { if (!p.status || p.status === 'done') p.status = 'queued'; }
+  for (const p of processed) { p.status = 'done'; }
+
+  // Sort: processing → queued/failed → done
+  const order = { processing: 0, queued: 1, failed: 2, done: 3 };
+  allPosts = [...queue, ...processed].sort((a, b) =>
+    (order[a.status] ?? 4) - (order[b.status] ?? 4)
+  );
+
+  // Prune stale selections
+  const currentIds = new Set(allPosts.map(p => p.id));
+  selectedIds.forEach(id => { if (!currentIds.has(id)) selectedIds.delete(id); });
+
+  renderPosts();
+  updateToolbar();
+  updateActionButtons();
+}
+
+function renderPosts() {
+  el.postsList.innerHTML = '';
+  if (allPosts.length === 0) {
+    const div = document.createElement('div');
+    div.className = 'empty-state';
+    div.innerHTML = '<p>Save a post on Instagram<br>and it appears here</p>';
+    el.postsList.appendChild(div);
+    return;
+  }
+  for (const post of allPosts) {
+    el.postsList.appendChild(buildPostItem(post));
+  }
+}
+
+function buildPostItem(post) {
+  const status = post.status || 'queued';
+
+  const div = document.createElement('div');
+  div.className = 'list-item' + (selectedIds.has(post.id) ? ' selected' : '');
+  div.dataset.postId = post.id;
+  div.dataset.status = status;
+
+  // Checkbox
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'checkbox';
+  checkbox.checked = selectedIds.has(post.id);
+
+  // Status dot
+  const dot = document.createElement('span');
+  dot.className = `status-dot s-${status}`;
+  dot.title = { queued: 'Queued', processing: 'Processing…', done: 'Done', failed: 'Failed' }[status] || status;
+
+  // Body
+  const body = document.createElement('div');
+  body.className = 'item-body';
+
+  const titleRow = document.createElement('div');
+  titleRow.className = 'item-title';
+
+  if (status === 'done') {
+    const name = document.createElement('span');
+    name.className = 'item-name';
+    name.textContent = post.name || post.topic || 'Post';
+    titleRow.appendChild(name);
+  } else {
+    if (post.instagramUrl) {
+      const a = document.createElement('a');
+      a.href = post.instagramUrl;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.className = 'item-link';
+      // Strip domain for brevity
+      a.textContent = post.instagramUrl.replace(/^https?:\/\/(www\.)?instagram\.com/, '');
+      titleRow.appendChild(a);
+    }
+    if (post.hasVideo) {
+      const vb = document.createElement('span');
+      vb.className = 'badge';
+      vb.innerHTML = iconVideo();
+      titleRow.appendChild(vb);
+    }
+  }
+
+  const sub = document.createElement('div');
+  sub.className = 'item-sub';
+  if (status === 'done') {
+    sub.textContent = post.summary || post.topic || '';
+  } else if (status === 'processing') {
+    const pct = post.progress ?? 5;
+    div.style.setProperty('--item-progress', pct + '%');
+    if (pct < 35)      sub.textContent = `${pct}% — preparing…`;
+    else if (pct < 65) sub.textContent = `${pct}% — transcribing…`;
+    else if (pct < 85) sub.textContent = `${pct}% — analyzing image…`;
+    else               sub.textContent = `${pct}% — categorizing…`;
+    sub.style.color = 'var(--accent)';
+  } else if (status === 'failed') {
+    sub.textContent = 'Failed — select to retry';
+    sub.style.color = 'var(--danger)';
+  } else {
+    sub.textContent = formatLocalTime(post.timestamp);
+  }
+
+  body.appendChild(titleRow);
+  body.appendChild(sub);
+
+  // Remove button
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'remove-btn';
+  removeBtn.title = 'Remove';
+  removeBtn.innerHTML = iconX();
+  removeBtn.dataset.removeId = post.id;
+  removeBtn.dataset.removeStatus = status;
+
+  div.appendChild(checkbox);
+  div.appendChild(dot);
+  div.appendChild(body);
+  div.appendChild(removeBtn);
+  return div;
+}
+
+// ── Toolbar + button state ─────────────────────────────────────────────────
+
+function updateToolbar() {
+  const total = allPosts.length;
+  const selCount = selectedIds.size;
+
+  el.postsCount.textContent = total > 0 ? `${total} post${total !== 1 ? 's' : ''}` : '';
+
+  if (selCount > 0) {
+    el.selectAllLabel.textContent = `${selCount} selected`;
+  } else {
+    el.selectAllLabel.textContent = 'Select all';
+  }
+
+  const allSelected = total > 0 && selCount === total;
+  el.selectAll.checked = allSelected;
+  el.selectAll.indeterminate = selCount > 0 && !allSelected;
+}
+
+function updateActionButtons() {
+  const selected = allPosts.filter(p => selectedIds.has(p.id));
+  const processable = selected.filter(p => p.status === 'queued' || p.status === 'failed');
+  const downloadable = selected.filter(p => p.status === 'done');
+
+  el.processBtn.disabled = processable.length === 0;
+  el.processBtn.textContent = processable.length > 0 ? `Process (${processable.length})` : 'Process';
+
+  el.downloadBtn.disabled = downloadable.length === 0;
+  el.downloadBtn.textContent = downloadable.length > 0 ? `Download (${downloadable.length})` : 'Download';
+
+  el.clearBtn.style.display = downloadable.length > 0 ? '' : 'none';
+  el.clearBtn.textContent = downloadable.length > 0 ? `Clear (${downloadable.length})` : 'Clear';
+}
+
+// ── Event wiring ───────────────────────────────────────────────────────────
+
+function setupListeners() {
+  el.settingsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
+  el.processBtn.addEventListener('click', processSelected);
+  el.downloadBtn.addEventListener('click', downloadSelected);
+  el.clearBtn.addEventListener('click', clearSelected);
+  el.bulkImportBtn?.addEventListener('click', bulkImport);
+  el.copyBtn?.addEventListener('click', copyMarkdown);
+  el.downloadMdBtn?.addEventListener('click', downloadMarkdown);
+
+  // Auto-save edits so they survive popup close/reopen
+  let _previewSaveTimer;
+  el.markdownPreview?.addEventListener('input', () => {
+    clearTimeout(_previewSaveTimer);
+    _previewSaveTimer = setTimeout(() => {
+      chrome.storage.local.set({ insta_last_preview: el.markdownPreview.value });
+    }, 400);
   });
-});
+
+  // Select-all checkbox
+  el.selectAll.addEventListener('change', (e) => {
+    if (e.target.checked) {
+      allPosts.forEach(p => selectedIds.add(p.id));
+    } else {
+      selectedIds.clear();
+    }
+    renderPosts();
+    updateToolbar();
+    updateActionButtons();
+  });
+
+  // List item interactions
+  el.postsList.addEventListener('click', (e) => {
+    // Remove button
+    const rb = e.target.closest('[data-remove-id]');
+    if (rb) {
+      e.stopPropagation();
+      removePost(rb.dataset.removeId, rb.dataset.removeStatus);
+      return;
+    }
+    // Links open in tab — don't intercept
+    if (e.target.closest('a')) return;
+
+    // Row click → toggle selection
+    const item = e.target.closest('[data-post-id]');
+    if (item) {
+      const id = item.dataset.postId;
+      if (selectedIds.has(id)) {
+        selectedIds.delete(id);
+        item.classList.remove('selected');
+      } else {
+        selectedIds.add(id);
+        item.classList.add('selected');
+      }
+      const cb = item.querySelector('.checkbox');
+      if (cb) cb.checked = selectedIds.has(id);
+      updateToolbar();
+      updateActionButtons();
+    }
+  });
+
+  // Checkbox change (when directly clicking the checkbox input)
+  el.postsList.addEventListener('change', (e) => {
+    if (e.target.classList.contains('checkbox')) {
+      const item = e.target.closest('[data-post-id]');
+      if (!item) return;
+      const id = item.dataset.postId;
+      if (e.target.checked) {
+        selectedIds.add(id);
+        item.classList.add('selected');
+      } else {
+        selectedIds.delete(id);
+        item.classList.remove('selected');
+      }
+      updateToolbar();
+      updateActionButtons();
+    }
+  });
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -68,319 +288,100 @@ function formatLocalTime(iso) {
   } catch { return ''; }
 }
 
-// Safe DOM text — avoids XSS from AI-sourced or user-supplied strings.
-function setText(el, text) { el.textContent = text; }
-function setAttr(el, attr, val) { el.setAttribute(attr, val); }
+// ── Post removal ───────────────────────────────────────────────────────────
 
-// ── Render queue ───────────────────────────────────────────────────────────
-
-async function loadQueue() {
-  const queue = await Storage.getQueue();
-  setText(el.queueCount, queue.length);
-
-  const currentIds = new Set(queue.map(p => p.id));
-  selectedQueueIds.forEach(id => { if (!currentIds.has(id)) selectedQueueIds.delete(id); });
-
-  el.queueList.innerHTML = '';
-
-  if (queue.length === 0) {
-    const p = document.createElement('p');
-    p.className = 'empty-state';
-    p.textContent = 'No posts queued.';
-    el.queueList.appendChild(p);
+async function removePost(postId, status) {
+  if (status === 'done') {
+    const processed = await Storage.getProcessed();
+    await Storage.setProcessed(processed.filter(p => p.id !== postId));
   } else {
-    for (const post of queue) {
-      el.queueList.appendChild(buildQueueItem(post));
-    }
+    const queue = await Storage.getQueue();
+    await Storage.setQueue(queue.filter(p => p.id !== postId));
   }
-  updateQueueButtons();
+  selectedIds.delete(postId);
+  await loadPosts();
 }
 
-function buildQueueItem(post) {
-  const div = document.createElement('div');
-  div.className = 'list-item';
+// ── Process ────────────────────────────────────────────────────────────────
 
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.className = 'checkbox';
-  checkbox.dataset.selectId = post.id;
-  checkbox.checked = selectedQueueIds.has(post.id);
-
-  const body = document.createElement('div');
-  body.className = 'item-body';
-
-  const titleRow = document.createElement('div');
-  titleRow.className = 'item-title';
-
-  if (post.instagramUrl) {
-    const a = document.createElement('a');
-    a.href = post.instagramUrl;
-    a.target = '_blank';
-    a.rel = 'noopener';
-    a.className = 'item-link';
-    a.textContent = post.instagramUrl;
-    titleRow.appendChild(a);
-  }
-
-  if (post.hasVideo) {
-    const badge = document.createElement('span');
-    badge.className = 'badge';
-    if (post.transcribed) {
-      badge.style.color = 'var(--accent)';
-      badge.title = 'Transcribed';
-      badge.innerHTML = iconMic() + '✓';
-    } else {
-      badge.style.color = '#8e8e93';
-      badge.title = 'Video — not yet transcribed';
-      badge.textContent = '🎬';
-    }
-    titleRow.appendChild(badge);
-  }
-
-  const sub = document.createElement('div');
-  sub.className = 'item-sub';
-  sub.textContent = formatLocalTime(post.timestamp);
-
-  body.appendChild(titleRow);
-  body.appendChild(sub);
-
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'remove-btn';
-  removeBtn.title = 'Remove';
-  removeBtn.textContent = '✕';
-  removeBtn.dataset.removeQueueId = post.id;
-
-  div.appendChild(checkbox);
-  div.appendChild(body);
-  div.appendChild(removeBtn);
-  return div;
-}
-
-// ── Render processed ───────────────────────────────────────────────────────
-
-async function loadProcessed() {
-  const processed = await Storage.getProcessed();
-  setText(el.processedCount, processed.length);
-
-  const currentIds = new Set(processed.map(p => p.id));
-  selectedProcessedIds.forEach(id => { if (!currentIds.has(id)) selectedProcessedIds.delete(id); });
-
-  el.processedList.innerHTML = '';
-
-  if (processed.length === 0) {
-    const p = document.createElement('p');
-    p.className = 'empty-state';
-    p.textContent = 'No posts processed yet.';
-    el.processedList.appendChild(p);
-  } else {
-    for (const post of processed) {
-      el.processedList.appendChild(buildProcessedItem(post));
-    }
-  }
-  updateProcessedButtons();
-}
-
-function buildProcessedItem(post) {
-  const div = document.createElement('div');
-  div.className = 'list-item';
-
-  const checkbox = document.createElement('input');
-  checkbox.type = 'checkbox';
-  checkbox.className = 'checkbox';
-  checkbox.dataset.selectProcessedId = post.id;
-  checkbox.checked = selectedProcessedIds.has(post.id);
-
-  const body = document.createElement('div');
-  body.className = 'item-body';
-  body.dataset.viewId = post.id;
-  body.style.cursor = 'pointer';
-
-  const titleRow = document.createElement('div');
-  titleRow.className = 'item-title';
-  titleRow.textContent = post.name || post.topic || 'Post';
-
-  const badge = document.createElement('span');
-  badge.className = 'badge';
-  if (post.transcribed && post.transcript) {
-    badge.innerHTML = iconMic('color:var(--accent)') + '✨';
-    badge.title = 'Whisper transcript used';
-  } else if (post.audioNotes) {
-    badge.innerHTML = iconMic('color:var(--accent)');
-    badge.title = 'Manual audio notes used';
-  } else {
-    badge.textContent = '📝';
-    badge.title = 'Caption only';
-  }
-  titleRow.appendChild(badge);
-
-  const sub = document.createElement('div');
-  sub.className = 'item-sub';
-  sub.textContent = post.summary || 'No summary';
-
-  body.appendChild(titleRow);
-  body.appendChild(sub);
-
-  const removeBtn = document.createElement('button');
-  removeBtn.className = 'remove-btn';
-  removeBtn.title = 'Remove';
-  removeBtn.textContent = '✕';
-  removeBtn.dataset.removeProcessedId = post.id;
-
-  div.appendChild(checkbox);
-  div.appendChild(body);
-  div.appendChild(removeBtn);
-  return div;
-}
-
-// ── Button state ───────────────────────────────────────────────────────────
-
-function updateQueueButtons() {
-  const n = selectedQueueIds.size;
-  el.processBtn.textContent = n > 0 ? `Process Selected (${n})` : 'Process Selected';
-  el.processBtn.disabled = n === 0;
-  setText(el.transcribeLabel, n > 0 ? `Transcribe (${n})` : 'Transcribe');
-  el.transcribeBtn.disabled = n === 0;
-}
-
-function updateProcessedButtons() {
-  const n = selectedProcessedIds.size;
-  el.downloadAllBtn.textContent = n > 0 ? `Download Selected (${n})` : 'Download All';
-  el.clearBtn.textContent = n > 0 ? `Delete Selected (${n})` : 'Clear All';
-  Storage.getProcessed().then(p => {
-    el.downloadAllBtn.disabled = p.length === 0;
-    el.clearBtn.disabled = p.length === 0;
-  });
-}
-
-// ── Event wiring ───────────────────────────────────────────────────────────
-
-function setupListeners() {
-  el.settingsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
-  el.processBtn.addEventListener('click', processSelected);
-  el.transcribeBtn.addEventListener('click', transcribeSelected);
-  el.bulkImportBtn?.addEventListener('click', bulkImport);
-  el.downloadAllBtn.addEventListener('click', downloadAllMarkdown);
-  el.clearBtn.addEventListener('click', clearStorage);
-  el.copyBtn.addEventListener('click', copyMarkdown);
-  el.downloadBtn.addEventListener('click', downloadMarkdown);
-
-  el.queueList.addEventListener('click', (e) => {
-    const cb = e.target.closest('[data-select-id]');
-    if (cb) {
-      if (cb.checked) selectedQueueIds.add(cb.dataset.selectId);
-      else selectedQueueIds.delete(cb.dataset.selectId);
-      updateQueueButtons();
-      return;
-    }
-    const rb = e.target.closest('[data-remove-queue-id]');
-    if (rb) removeQueueItem(rb.dataset.removeQueueId);
-  });
-
-  el.processedList.addEventListener('click', (e) => {
-    const cb = e.target.closest('[data-select-processed-id]');
-    if (cb) {
-      if (cb.checked) selectedProcessedIds.add(cb.dataset.selectProcessedId);
-      else selectedProcessedIds.delete(cb.dataset.selectProcessedId);
-      updateProcessedButtons();
-      return;
-    }
-    const rb = e.target.closest('[data-remove-processed-id]');
-    if (rb) { removeProcessedItem(rb.dataset.removeProcessedId); return; }
-    const body = e.target.closest('[data-view-id]');
-    if (body) viewPost(body.dataset.viewId);
-  });
-}
-
-// ── Queue actions ──────────────────────────────────────────────────────────
-
-async function removeQueueItem(postId) {
-  const queue = await Storage.getQueue();
-  await Storage.setQueue(queue.filter(p => p.id !== postId));
-  selectedQueueIds.delete(postId);
-  await loadQueue();
-}
-
-async function viewPost(postId) {
-  const processed = await Storage.getProcessed();
-  const post = processed.find(p => p.id === postId);
-  if (!post) return;
-
-  const name = post.name || post.topic || 'Post';
-  const summary = post.summary || '';
-  const tags = (post.tags || []).map(t => '#' + t).join(' ');
-  const url = post.instagramUrl || '';
-  const md = [`# ${name}`, '', summary, tags, '', url ? `[View on Instagram](${url})` : ''].filter(l => l !== undefined).join('\n');
-  el.markdownPreview.value = md;
-  el.previewSection.style.display = 'block';
-}
-
-// ── Transcription ──────────────────────────────────────────────────────────
-
-function waitForTabLoad(tabId) {
-  return new Promise(resolve => {
-    const listener = (id, info) => {
-      if (id === tabId && info.status === 'complete') {
-        chrome.tabs.onUpdated.removeListener(listener);
-        resolve();
-      }
-    };
-    chrome.tabs.onUpdated.addListener(listener);
-    setTimeout(() => { chrome.tabs.onUpdated.removeListener(listener); resolve(); }, 8000);
-  });
-}
-
-async function transcribePosts(targets, labelPrefix = '🎙️ Transcribing') {
-  if (targets.length === 0) return;
-
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab?.url?.includes('instagram.com')) {
-    setStatus('✗ Open Instagram tab to transcribe (falling back to caption on process)');
-    return;
-  }
-
-  const originalUrl = tab.url;
-
-  for (let i = 0; i < targets.length; i++) {
-    const post = targets[i];
-    setStatus(`${labelPrefix} ${i + 1}/${targets.length}…`);
-    try {
-      if (tab.url !== post.instagramUrl) {
-        await chrome.tabs.update(tab.id, { url: post.instagramUrl });
-        await waitForTabLoad(tab.id);
-        await new Promise(r => setTimeout(r, 1200));
-      }
-      const resp = await chrome.runtime.sendMessage({
-        action: 'transcribeAudio',
-        postId: post.id,
-        tabId: tab.id
-      });
-      if (!resp?.success) {
-        console.log(`[Instagram MD] Transcribe skipped for ${post.id}: ${resp?.error}`);
-      }
-    } catch (err) {
-      console.log(`[Instagram MD] Transcribe error for ${post.id}:`, err.message);
-    }
-  }
-
-  if (tab.url !== originalUrl) {
-    await chrome.tabs.update(tab.id, { url: originalUrl }).catch(() => {});
-  }
-}
-
-async function transcribeSelected() {
-  const queue = await Storage.getQueue();
-  const targets = queue.filter(p =>
-    selectedQueueIds.has(p.id) && p.hasVideo && !p.transcribed && p.instagramUrl
+async function processSelected() {
+  const toProcess = allPosts.filter(
+    p => selectedIds.has(p.id) && (p.status === 'queued' || p.status === 'failed')
   );
-  if (targets.length === 0) {
-    setStatus('✗ No untranscribed video posts in selection', 2500);
+  if (toProcess.length === 0) return;
+
+  el.processBtn.disabled = true;
+
+  // Optimistically update UI to processing state; background updates storage as it goes
+  for (const p of toProcess) p.status = 'processing';
+  renderPosts();
+  updateToolbar();
+  updateActionButtons();
+  setStatus('Processing…');
+
+  try {
+    const resp = await chrome.runtime.sendMessage({
+      action: 'processBatch',
+      postIds: toProcess.map(p => p.id)
+    });
+
+    if (resp?.success) {
+      setStatus(`✓ ${resp.processedCount} post${resp.processedCount !== 1 ? 's' : ''} processed`, 3000);
+      if (resp.markdown) {
+        showPreview(resp.markdown);
+      }
+      selectedIds.clear();
+    } else {
+      setStatus(`✗ ${resp?.error || 'Processing failed'}`, 4000);
+    }
+  } catch (err) {
+    setStatus(`✗ ${err.message}`, 4000);
+  } finally {
+    el.processBtn.disabled = false;
+    await loadPosts();
+  }
+}
+
+// ── Download ───────────────────────────────────────────────────────────────
+
+async function downloadSelected() {
+  const toDownload = allPosts.filter(p => selectedIds.has(p.id) && p.status === 'done');
+  if (toDownload.length === 0) {
+    // Fallback: download all processed
+    const all = await Storage.getProcessed();
+    if (all.length === 0) { setStatus('No posts to download', 2000); return; }
+    triggerDownload(generateMasterNote(all), 'instagram-posts.md');
+    setStatus('✓ Downloaded all', 2000);
     return;
   }
-  el.transcribeBtn.disabled = true;
-  await transcribePosts(targets);
-  setStatus(`✓ Transcribed ${targets.length} item(s)`, 2500);
-  await loadQueue();
-  updateQueueButtons();
+  triggerDownload(generateMasterNote(toDownload), `instagram-posts-${Date.now()}.md`);
+  setStatus('✓ Downloaded!', 2000);
+}
+
+// ── Clear selected done posts ──────────────────────────────────────────────
+
+async function clearSelected() {
+  const toClear = allPosts.filter(p => selectedIds.has(p.id) && p.status === 'done');
+  if (toClear.length === 0) return;
+  if (!confirm(`Remove ${toClear.length} processed post${toClear.length !== 1 ? 's' : ''}? Cannot be undone.`)) return;
+
+  const clearIds = new Set(toClear.map(p => p.id));
+  const processed = await Storage.getProcessed();
+  const remaining = processed.filter(p => !clearIds.has(p.id));
+  await Storage.setProcessed(remaining);
+  clearIds.forEach(id => selectedIds.delete(id));
+
+  // Rebuild preview from whatever processed posts remain
+  if (remaining.length > 0) {
+    showPreview(generateMasterNote(remaining));
+  } else {
+    el.previewSection.style.display = 'none';
+    el.markdownPreview.value = '';
+    chrome.storage.local.remove('insta_last_preview');
+  }
+
+  setStatus('✓ Cleared', 2000);
+  await loadPosts();
 }
 
 // ── Bulk import ────────────────────────────────────────────────────────────
@@ -392,12 +393,12 @@ async function bulkImport() {
     return;
   }
   if (el.bulkImportBtn) el.bulkImportBtn.disabled = true;
-  setStatus('📥 Bulk importing…');
+  setStatus('Importing saved posts…');
   try {
-    const resp = await chrome.runtime.sendMessage({ action: 'startBulkImport' });
+    const resp = await chrome.runtime.sendMessage({ action: 'startBulkImport', tabId: tab.id });
     if (resp?.success) {
       setStatus(`✓ Imported ${resp.count} posts`, 2500);
-      await loadQueue();
+      await loadPosts();
     } else {
       setStatus(`✗ Bulk import failed: ${resp?.error}`, 3000);
     }
@@ -408,69 +409,35 @@ async function bulkImport() {
   }
 }
 
-// ── Process ────────────────────────────────────────────────────────────────
+// ── Preview persistence ────────────────────────────────────────────────────
 
-async function processSelected() {
-  if (selectedQueueIds.size === 0) {
-    setStatus('Select at least one item');
-    return;
-  }
-  el.processBtn.disabled = true;
+function showPreview(md) {
+  el.markdownPreview.value = md;
+  el.previewSection.style.display = 'block';
+  chrome.storage.local.set({ insta_last_preview: md });
+}
 
-  const queue = await Storage.getQueue();
-  const needsTranscription = queue.filter(
-    p => selectedQueueIds.has(p.id) && p.hasVideo && !p.transcribed && p.instagramUrl
-  );
-  if (needsTranscription.length > 0) {
-    await transcribePosts(needsTranscription, '🎙️ Auto-transcribing');
-  }
-
-  setStatus('Processing…');
-  try {
-    const resp = await chrome.runtime.sendMessage({
-      action: 'processBatch',
-      postIds: Array.from(selectedQueueIds)
-    });
-    if (resp.success) {
-      setStatus('✓ Processed!', 2500);
-      el.markdownPreview.value = resp.markdown;
-      el.previewSection.style.display = 'block';
-      selectedQueueIds.clear();
-      await loadQueue();
-      await loadProcessed();
-    } else {
-      setStatus(`✗ Error: ${resp.error}`, 4000);
-    }
-  } catch (err) {
-    setStatus(`✗ Error: ${err.message}`, 4000);
-  } finally {
-    el.processBtn.disabled = false;
-    updateQueueButtons();
+async function restorePreview() {
+  const data = await chrome.storage.local.get('insta_last_preview');
+  if (data.insta_last_preview) {
+    el.markdownPreview.value = data.insta_last_preview;
+    el.previewSection.style.display = 'block';
   }
 }
 
-// ── Download all ───────────────────────────────────────────────────────────
+// ── Copy / Download single preview ────────────────────────────────────────
 
-async function downloadAllMarkdown() {
-  const all = await Storage.getProcessed();
-  const posts = selectedProcessedIds.size > 0
-    ? all.filter(p => selectedProcessedIds.has(p.id))
-    : all;
+function copyMarkdown() {
+  navigator.clipboard.writeText(el.markdownPreview.value)
+    .then(() => setStatus('✓ Copied!', 2000));
+}
 
-  if (posts.length === 0) { setStatus('No posts to download', 2000); return; }
-
-  const md = generateMasterNote(posts);
-  const filename = selectedProcessedIds.size > 0
-    ? 'instagram-posts-selected.md'
-    : 'instagram-posts.md';
-  triggerDownload(md, filename);
+function downloadMarkdown() {
+  triggerDownload(el.markdownPreview.value, 'instagram-posts.md');
   setStatus('✓ Downloaded!', 2000);
 }
 
-// Single-post card view download
-function downloadMarkdown() {
-  triggerDownload(el.markdownPreview.value, 'post.md');
-}
+// ── Download helper ────────────────────────────────────────────────────────
 
 function triggerDownload(text, filename) {
   const blob = new Blob([text], { type: 'text/markdown' });
@@ -484,7 +451,7 @@ function triggerDownload(text, filename) {
   URL.revokeObjectURL(url);
 }
 
-// ── Markdown generation (single source of truth) ──────────────────────────
+// ── Markdown generation ────────────────────────────────────────────────────
 
 function generateMasterNote(posts) {
   if (posts.length === 0) return '# No posts processed yet.';
@@ -497,7 +464,6 @@ function generateMasterNote(posts) {
   }
 
   const lines = ['# Instagram Saved Posts', '', `Generated: ${new Date().toISOString()}`, ''];
-
   lines.push('## Topics');
   for (const [topic, tPosts] of Object.entries(byTopic)) {
     lines.push(`- [[#${topic}]] (${tPosts.length})`);
@@ -520,47 +486,11 @@ function generateMasterNote(posts) {
       if (summary) lines.push(`> ${summary}`);
       if (tags) lines.push(`> ${tags}`);
       const meta = [date, author, url ? `[View post →](${url})` : ''].filter(Boolean).join(' · ');
-      if (meta) lines.push(`> 📅 ${meta}`);
+      if (meta) lines.push(`> ${meta}`);
       lines.push('');
     }
   }
-
   return lines.join('\n');
-}
-
-// ── Remove processed (ID-based, not index) ─────────────────────────────────
-
-async function removeProcessedItem(postId) {
-  const processed = await Storage.getProcessed();
-  await Storage.setProcessed(processed.filter(p => p.id !== postId));
-  selectedProcessedIds.delete(postId);
-  await loadProcessed();
-}
-
-// ── Clear ──────────────────────────────────────────────────────────────────
-
-async function clearStorage() {
-  const hasSelection = selectedProcessedIds.size > 0;
-  const msg = hasSelection
-    ? `Delete ${selectedProcessedIds.size} selected post(s)? This cannot be undone.`
-    : 'Clear all processed posts? This cannot be undone.';
-  if (!confirm(msg)) return;
-
-  if (hasSelection) {
-    const all = await Storage.getProcessed();
-    await Storage.setProcessed(all.filter(p => !selectedProcessedIds.has(p.id)));
-    selectedProcessedIds.clear();
-  } else {
-    await Storage.clearProcessed();
-  }
-  setStatus('✓ Cleared', 2000);
-  await loadProcessed();
-}
-
-// ── Copy ───────────────────────────────────────────────────────────────────
-
-function copyMarkdown() {
-  navigator.clipboard.writeText(el.markdownPreview.value).then(() => setStatus('✓ Copied!', 2000));
 }
 
 // ── Status helper ──────────────────────────────────────────────────────────
@@ -575,14 +505,12 @@ function setStatus(text, clearAfterMs) {
 // ── Init ───────────────────────────────────────────────────────────────────
 
 async function init() {
-  await loadQueue();
-  await loadProcessed();
+  await loadPosts();
+  await restorePreview();
   setupListeners();
 }
 
-setInterval(async () => {
-  await loadQueue();
-  await loadProcessed();
-}, 3000);
+// Poll every 3s to pick up background processing updates
+setInterval(loadPosts, 3000);
 
 init();

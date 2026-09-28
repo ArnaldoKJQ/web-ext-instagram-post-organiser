@@ -167,47 +167,94 @@
   window.instagramMDBulkImport = async function () {
     console.log('[Instagram MD] Starting bulk import…');
     const posts = [];
-    const seenIds = new Set();
-    const MAX_SCROLLS = 50;
-    let scrollCount = 0;
-    let debounceTimer;
+    const seenUrls = new Set();
+    const MAX_SCROLLS = 80;
 
-    const extractVisible = () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => {
-        let found = 0;
-        for (const article of document.querySelectorAll('article')) {
-          const postId = article.getAttribute('data-id') || article.innerText.substring(0, 50);
-          if (seenIds.has(postId)) continue;
-          seenIds.add(postId);
-          const data = extractFromArticle(article);
-          if (data) { posts.push(data); found++; }
-        }
-        console.log(`[Instagram MD] Extracted ${found} new posts`);
-      }, 300);
-    };
+    // Extract from both grid links (/p/ /reel/) AND any open article elements.
+    function extractVisible() {
+      let found = 0;
+
+      // Grid view — saved posts page uses <a href="/p/…"> thumbnails, not <article>.
+      for (const link of document.querySelectorAll('a[href*="/p/"], a[href*="/reel/"]')) {
+        const url = (link.href || '').split('?')[0];
+        if (!url || seenUrls.has(url)) continue;
+        seenUrls.add(url);
+
+        const img = link.querySelector('img');
+        // Instagram marks reels/videos with an SVG overlay on the thumbnail.
+        const hasVideo = !!(
+          link.querySelector('svg[aria-label]') ||
+          link.querySelector('[aria-label*="eel"], [aria-label*="ideo"], [aria-label*="lip"]')
+        );
+
+        posts.push({
+          id: buildPostId(),
+          instagramUrl: url,
+          caption: img?.alt || '',
+          imageUrls: img?.src ? [img.src] : [],
+          hasVideo,
+          timestamp: new Date().toISOString(),
+          queued: true
+        });
+        found++;
+      }
+
+      // Feed / modal view — pick up any <article> elements too.
+      for (const article of document.querySelectorAll('article')) {
+        const url = (extractPostUrl(article) || '').split('?')[0];
+        if (!url || seenUrls.has(url)) continue;
+        seenUrls.add(url);
+        const data = extractFromArticle(article);
+        if (data) { posts.push(data); found++; }
+      }
+
+      if (found > 0) {
+        console.log(`[Instagram MD] Extracted ${found} new posts (total: ${posts.length})`);
+      }
+    }
+
+    // Instagram often scrolls document.documentElement, not body.
+    // Find whichever root element actually has scrollable height.
+    function scrollDown() {
+      const html = document.documentElement;
+      const body = document.body;
+      if (html.scrollHeight > html.clientHeight) {
+        html.scrollTop = html.scrollHeight;
+      }
+      window.scrollTo(0, Math.max(body.scrollHeight, html.scrollHeight));
+    }
+
+    function currentScrollHeight() {
+      return Math.max(
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      );
+    }
 
     extractVisible();
 
-    while (scrollCount < MAX_SCROLLS) {
-      const oldHeight = document.body.scrollHeight;
-      window.scrollBy(0, window.innerHeight);
-      await new Promise(r => setTimeout(r, 800));
-      if (document.body.scrollHeight === oldHeight) {
+    for (let i = 0; i < MAX_SCROLLS; i++) {
+      const before = currentScrollHeight();
+      scrollDown();
+      // Give Instagram time to lazy-load the next batch of thumbnails.
+      await new Promise(r => setTimeout(r, 1500));
+      const after = currentScrollHeight();
+
+      if (after === before) {
         console.log('[Instagram MD] Reached end of saved posts');
         break;
       }
       extractVisible();
-      scrollCount++;
     }
 
-    await new Promise(r => setTimeout(r, 350));
+    // Final sweep after content settles.
+    await new Promise(r => setTimeout(r, 600));
+    extractVisible();
 
+    console.log(`[Instagram MD] Bulk imported ${posts.length} posts`);
     chrome.runtime.sendMessage({ action: 'bulkAddToQueue', posts }, (resp) => {
       if (chrome.runtime.lastError) {
         console.error('[Instagram MD] Bulk import error:', chrome.runtime.lastError);
-      } else if (resp?.success) {
-        console.log(`[Instagram MD] Bulk imported ${posts.length} posts`);
       }
     });
 
