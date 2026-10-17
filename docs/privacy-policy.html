@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — Instagram MD</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #fdf6ee;
+      --surface:     #ffffff;
+      --surface-hi:  #faf0e2;
+      --border:      #e8d3b8;
+      --gradient:    linear-gradient(135deg, #8b4513 0%, #c85a1a 50%, #f4913a 100%);
+      --accent:      #c85a1a;
+      --text:        #2d1608;
+      --text-muted:  #8b6040;
+      --text-dim:    #c4a882;
+      --success:     #15803d;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    .top-bar {
+      height: 5px;
+      background: var(--gradient);
+    }
+
+    /* ── Layout ── */
+    .page {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 36px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 11px;
+      background: var(--gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .logo-mark svg {
+      width: 24px;
+      height: 24px;
+      color: #fff;
+    }
+
+    .header-text h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+
+    .header-text p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    /* ── Summary card ── */
+    .summary-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px 22px;
+      margin-bottom: 32px;
+    }
+
+    .summary-card h2 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .summary-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .summary-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .summary-list li .check {
+      flex-shrink: 0;
+      width: 17px;
+      height: 17px;
+      margin-top: 1px;
+      color: var(--success);
+    }
+
+    /* ── Sections ── */
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .section p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .section p:last-child { margin-bottom: 0; }
+
+    /* ── Data table ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      margin-top: 12px;
+    }
+
+    .data-table th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--surface-hi);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      border: 1px solid var(--border);
+    }
+
+    .data-table td {
+      padding: 9px 12px;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.5;
+    }
+
+    .data-table tr:nth-child(even) td {
+      background: var(--surface);
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .tag-local {
+      background: rgba(21, 128, 61, 0.08);
+      color: #15803d;
+      border: 1px solid rgba(21, 128, 61, 0.18);
+    }
+
+    .tag-external {
+      background: rgba(200, 90, 26, 0.08);
+      color: var(--accent);
+      border: 1px solid rgba(200, 90, 26, 0.18);
+    }
+
+    /* ── Highlight box ── */
+    .highlight {
+      background: rgba(21, 128, 61, 0.06);
+      border: 1px solid rgba(21, 128, 61, 0.18);
+      border-radius: 10px;
+      padding: 14px 16px;
+      font-size: 13.5px;
+      color: #15803d;
+      margin-top: 14px;
+      line-height: 1.55;
+    }
+
+    /* ── Footer ── */
+    footer {
+      margin-top: 48px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      font-size: 12.5px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <div class="top-bar"></div>
+
+  <div class="page">
+
+    <header class="header">
+      <div class="logo-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="5"/>
+          <circle cx="12" cy="12" r="4"/>
+          <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <h1>Privacy Policy</h1>
+        <p>Instagram MD &mdash; Last updated October 2026</p>
+      </div>
+    </header>
+
+    <!-- Plain-language summary -->
+    <div class="summary-card">
+      <h2>In plain language</h2>
+      <ul class="summary-list">
+        <li>
+          <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.5 8.5l4 4 7-8"/>
+          </svg>
+          All your data stays on your device — no servers, no accounts, no tracking.
+        </li>
+        <li>
+          <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.5 8.5l4 4 7-8"/>
+          </svg>
+          Your Groq API key is encrypted on-device and never sent anywhere except directly to Groq under your own account.
+        </li>
+        <li>
+          <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.5 8.5l4 4 7-8"/>
+          </svg>
+          Instagram post content (captions, audio, images) is sent only to Groq&rsquo;s API to generate your markdown notes — it is not stored by us.
+        </li>
+        <li>
+          <svg class="check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2.5 8.5l4 4 7-8"/>
+          </svg>
+          We collect nothing. We receive nothing. We have no backend.
+        </li>
+      </ul>
+    </div>
+
+    <!-- 1. What we are -->
+    <div class="section">
+      <h2>1. What Instagram MD does</h2>
+      <p>Instagram MD is a Chrome extension that converts your Instagram saved posts into Obsidian-ready markdown notes. It reads post captions, transcribes audio from Reels, and describes images by calling the Groq AI API using the API key you provide.</p>
+      <p>The extension has no backend server. The developer (Arnaldo Koo) does not operate any service that receives, stores, or processes your data.</p>
+    </div>
+
+    <!-- 2. Data stored locally -->
+    <div class="section">
+      <h2>2. Data stored on your device</h2>
+      <p>The following is stored in your browser via <code>chrome.storage.local</code> — it never leaves your device except as described in section 3.</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>What</th>
+            <th>Why</th>
+            <th>Where</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Groq API key (AES-GCM encrypted)</td>
+            <td>Sent to Groq on your behalf when you click Process</td>
+            <td><span class="tag tag-local">Device only</span></td>
+          </tr>
+          <tr>
+            <td>Post queue (URLs, author handles, captions)</td>
+            <td>Holds posts awaiting processing between sessions</td>
+            <td><span class="tag tag-local">Device only</span></td>
+          </tr>
+          <tr>
+            <td>Processed markdown notes</td>
+            <td>Shown in the preview and available to download</td>
+            <td><span class="tag tag-local">Device only</span></td>
+          </tr>
+          <tr>
+            <td>Settings (batch size, AI model, theme)</td>
+            <td>Restores your preferences between sessions</td>
+            <td><span class="tag tag-local">Device only</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="highlight">
+        Your Groq API key is encrypted with AES-GCM using a device-specific non-extractable key generated by the Web Crypto API. The raw key is never written to disk and cannot be read — even by the extension itself — without the device key.
+      </div>
+    </div>
+
+    <!-- 3. Data sent to Groq -->
+    <div class="section">
+      <h2>3. Data sent to the Groq API</h2>
+      <p>When you click <strong>Process</strong>, the extension sends Instagram post content to <a href="https://groq.com" target="_blank" rel="noopener">api.groq.com</a> using your own Groq API key. The following content may be included depending on the post type:</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Content</th>
+            <th>Sent to</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Post captions and author handles</td>
+            <td><span class="tag tag-external">Groq chat API</span></td>
+            <td>Categorization and markdown note generation</td>
+          </tr>
+          <tr>
+            <td>Reel audio (fetched from Instagram CDN)</td>
+            <td><span class="tag tag-external">Groq Whisper API</span></td>
+            <td>Transcription</td>
+          </tr>
+          <tr>
+            <td>Image descriptions (generated locally via Groq vision)</td>
+            <td><span class="tag tag-external">Groq vision API</span></td>
+            <td>OCR and image understanding for markdown notes</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p style="margin-top:14px">This data is sent under your Groq account and is subject to <a href="https://groq.com/privacy-policy/" target="_blank" rel="noopener">Groq&rsquo;s Privacy Policy</a>. The developer of Instagram MD has no access to any data passing through Groq&rsquo;s API.</p>
+    </div>
+
+    <!-- 4. What we do NOT do -->
+    <div class="section">
+      <h2>4. What we do not do</h2>
+      <p>We do not:</p>
+      <ul style="margin-left:1.2em;margin-top:6px;color:var(--text-muted);font-size:14px;line-height:1.8">
+        <li>Collect, transmit, or store any user data on our own servers</li>
+        <li>Sell, share, or transfer user data to any third party (other than Groq as described above)</li>
+        <li>Use your data for advertising or profiling purposes</li>
+        <li>Include any analytics, telemetry, or crash-reporting libraries</li>
+        <li>Access your Instagram account credentials</li>
+      </ul>
+    </div>
+
+    <!-- 5. Permissions -->
+    <div class="section">
+      <h2>5. Chrome permissions used</h2>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Permission</th>
+            <th>Why it is needed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>storage</code></td>
+            <td>Saves your post queue, processed notes, encrypted API key, and preferences locally</td>
+          </tr>
+          <tr>
+            <td><code>alarms</code></td>
+            <td>Keeps the service worker alive during multi-post AI processing batches</td>
+          </tr>
+          <tr>
+            <td><code>offscreen</code></td>
+            <td>Decodes Reel audio and encodes it as WAV before sending to Groq Whisper</td>
+          </tr>
+          <tr>
+            <td><code>tabCapture</code></td>
+            <td>Fallback audio capture when Instagram CDN audio URLs have expired</td>
+          </tr>
+          <tr>
+            <td><code>scripting</code></td>
+            <td>Injects the content script into Instagram to collect saved-post metadata during bulk import</td>
+          </tr>
+          <tr>
+            <td>instagram.com host permission</td>
+            <td>Required for the content script to read saved-posts page and detect newly saved posts</td>
+          </tr>
+          <tr>
+            <td>api.groq.com host permission</td>
+            <td>Required to call Groq&rsquo;s API for transcription, vision, and categorization</td>
+          </tr>
+          <tr>
+            <td>cdninstagram.com / fbcdn.net host permissions</td>
+            <td>Required to fetch Reel audio directly from Instagram&rsquo;s CDN for transcription</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 6. Data retention -->
+    <div class="section">
+      <h2>6. Data retention and deletion</h2>
+      <p>All data is stored in your browser&rsquo;s local storage. You can delete it at any time by clicking <strong>Settings &rarr; Clear all data</strong> in the extension, or by removing the extension entirely from Chrome (which deletes all associated storage).</p>
+      <p>The developer has no copy of your data and therefore cannot delete it on your behalf — you are always in full control.</p>
+    </div>
+
+    <!-- 7. Changes -->
+    <div class="section">
+      <h2>7. Changes to this policy</h2>
+      <p>If this policy changes materially, the &ldquo;Last updated&rdquo; date at the top of this page will be revised. Continued use of the extension after a change constitutes acceptance of the updated policy.</p>
+    </div>
+
+    <!-- 8. Contact -->
+    <div class="section">
+      <h2>8. Contact</h2>
+      <p>Questions about this privacy policy? Open an issue on <a href="https://github.com/ArnaldoKJQ/web-ext-instagram-post-organiser" target="_blank" rel="noopener">GitHub</a> or email <a href="mailto:arnaldokoo@gmail.com">arnaldokoo@gmail.com</a>.</p>
+    </div>
+
+    <footer>
+      <p>Instagram MD is an independent project and is not affiliated with Instagram or Meta Platforms, Inc.</p>
+      <p style="margin-top:6px">&copy; 2026 Arnaldo Koo &mdash; <a href="https://github.com/ArnaldoKJQ/web-ext-instagram-post-organiser" target="_blank" rel="noopener">Source code on GitHub</a></p>
+    </footer>
+
+  </div>
+
+</body>
+</html>
